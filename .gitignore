@@ -1,5 +1,6 @@
-# TT virtual environment
+# AlterFalter
 venv/
+config.json
 
 
 # Byte-compiled / optimized / DLL files
