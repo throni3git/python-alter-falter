@@ -101,11 +101,11 @@ class WidgetSignal(QtWidgets.QWidget):
         _layout_filename_buttons.addStretch()
 
         self._open_button = QtWidgets.QPushButton("Open")
-        self._open_button.clicked.connect(self.open_file)
+        self._open_button.clicked.connect(self._on_filedialog_open_file)
         _layout_filename_buttons.addWidget(self._open_button)
 
         self._save_button = QtWidgets.QPushButton("Save")
-        self._save_button.clicked.connect(self.save_file)
+        self._save_button.clicked.connect(self._on_filedialog_save_file)
         _layout_filename_buttons.addWidget(self._save_button)
 
         _layout_filename.addLayout(_layout_filename_buttons)
@@ -132,18 +132,26 @@ class WidgetSignal(QtWidgets.QWidget):
         self.figure.canvas.draw()
         self.figure.canvas.flush_events()
 
-    def open_file(self):
+    def open_file(self, fn_signal: str):
+        self.fn_signal = fn_signal
+        self._label_filename.setText(fn_signal)
+        data = load_wave_file(fn_signal)
+        self.set_data(data)
+
+    def _on_filedialog_open_file(self):
         pn_before = Path(self.fn_signal if self.fn_signal is not None else __file__).parent
 
         fn_signal, _ = QtWidgets.QFileDialog.getOpenFileName(filter="*.wav", dir=str(pn_before))
         self._label_filename.setText(fn_signal)
-        if fn_signal is "":
-            return
-        self.fn_signal = fn_signal
-        data = load_wave_file(self.fn_signal)
-        self.set_data(data)
+        if fn_signal is not "":
+            self.open_file(fn_signal)
 
-    def save_file(self):
+    def save_file(self, fn_signal: str):
+        self.fn_signal = fn_signal
+        soundfile.write(self.fn_signal, self.sig.T, 48000, subtype="PCM_32")
+        self.writeDone.emit(self.fn_signal)
+
+    def _on_filedialog_save_file(self):
         pn_before = Path(self.fn_signal if self.fn_signal is not None else __file__).parent
 
         fn_signal, _ = QtWidgets.QFileDialog.getSaveFileName(filter="*.wav", dir=str(pn_before))
@@ -152,9 +160,8 @@ class WidgetSignal(QtWidgets.QWidget):
             return
         if not fn_signal.endswith(".wav"):
             fn_signal = fn_signal + ".wav"
-        self.fn_signal = fn_signal
-        soundfile.write(self.fn_signal, self.sig.T, 48000, subtype="PCM_32")
-        self.writeDone.emit(self.fn_signal)
+        if fn_signal is not "":
+            self.save_file(fn_signal)
 
 
 class MainAlterFalter(QtWidgets.QMainWindow):
@@ -196,23 +203,17 @@ class MainAlterFalter(QtWidgets.QMainWindow):
         fn_wave = get_config()["filename_A"]
         if fn_wave == None:
             fn_wave = str(Path(__file__).parent / "example/A.wav")
-        data = load_wave_file(fn_wave)
-        if data is not None:
-            self.widgetSignalA.set_data(data)
+        self.widgetSignalA.open_file(fn_wave)
 
         fn_wave = get_config()["filename_B"]
         if fn_wave == None:
             fn_wave = str(Path(__file__).parent / "example/B.wav")
-        data = load_wave_file(fn_wave)
-        if data is not None:
-            self.widgetSignalB.set_data(data)
+        self.widgetSignalB.open_file(fn_wave)
 
         fn_wave = get_config()["filename_C"]
         if fn_wave == None:
             fn_wave = str(Path(__file__).parent / "example/C.wav")
-        data = load_wave_file(fn_wave)
-        if data is not None:
-            self.widgetSignalC.set_data(data)
+        self.widgetSignalC.open_file(fn_wave)
 
     def calcA(self):
         print("Calc A")
