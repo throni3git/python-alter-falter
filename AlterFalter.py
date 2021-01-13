@@ -65,7 +65,7 @@ def load_wave_file(path: str) -> np.ndarray:
 class WidgetSignal(QtWidgets.QWidget):
 
     calculationDesired = Signal()
-    writeDone = Signal(str)
+    signalFilenameChanged = Signal(str)
 
     def __init__(self, title: str, parent=None):
         super(WidgetSignal, self).__init__(parent)
@@ -137,6 +137,7 @@ class WidgetSignal(QtWidgets.QWidget):
         self._label_filename.setText(fn_signal)
         data = load_wave_file(fn_signal)
         self.set_data(data)
+        self.signalFilenameChanged.emit(fn_signal)
 
     def _on_filedialog_open_file(self):
         pn_before = Path(self.fn_signal if self.fn_signal is not None else __file__).parent
@@ -149,7 +150,7 @@ class WidgetSignal(QtWidgets.QWidget):
     def save_file(self, fn_signal: str):
         self.fn_signal = fn_signal
         soundfile.write(self.fn_signal, self.sig.T, 48000, subtype="PCM_32")
-        self.writeDone.emit(self.fn_signal)
+        self.signalFilenameChanged.emit(self.fn_signal)
 
     def _on_filedialog_save_file(self):
         pn_before = Path(self.fn_signal if self.fn_signal is not None else __file__).parent
@@ -178,7 +179,7 @@ class MainAlterFalter(QtWidgets.QMainWindow):
         layout = QtWidgets.QHBoxLayout()
         self.widgetSignalA = WidgetSignal("Signal A")
         self.widgetSignalA.calculationDesired.connect(self.calcA)
-        self.widgetSignalA.writeDone.connect(self.writeA)
+        self.widgetSignalA.signalFilenameChanged.connect(self.signalFilenameChangedA)
         layout.addWidget(self.widgetSignalA)
 
         _label_convolution = QtWidgets.QLabel("<h1>*</h1>")
@@ -186,7 +187,7 @@ class MainAlterFalter(QtWidgets.QMainWindow):
 
         self.widgetSignalB = WidgetSignal("Signal B")
         self.widgetSignalB.calculationDesired.connect(self.calcB)
-        self.widgetSignalB.writeDone.connect(self.writeB)
+        self.widgetSignalB.signalFilenameChanged.connect(self.signalFilenameChangedB)
         layout.addWidget(self.widgetSignalB)
 
         _label_assignment = QtWidgets.QLabel("<h1>=</h1>")
@@ -194,7 +195,7 @@ class MainAlterFalter(QtWidgets.QMainWindow):
 
         self.widgetSignalC = WidgetSignal("Signal C")
         self.widgetSignalC.calculationDesired.connect(self.calcC)
-        self.widgetSignalC.writeDone.connect(self.writeC)
+        self.widgetSignalC.signalFilenameChanged.connect(self.signalFilenameChangedC)
         layout.addWidget(self.widgetSignalC)
 
         self._main.setLayout(layout)
@@ -223,7 +224,6 @@ class MainAlterFalter(QtWidgets.QMainWindow):
 
     def calcC(self):
         print("Calc C")
-        self.widgetSignalA.sig
 
         len_c = self.widgetSignalA.sig.shape[-1] + self.widgetSignalB.sig.shape[-1]
         pad_a = len_c - self.widgetSignalA.sig.shape[-1]
@@ -237,15 +237,15 @@ class MainAlterFalter(QtWidgets.QMainWindow):
         h = np.fft.irfft(ffth)
         self.widgetSignalC.set_data(h)
 
-    def writeA(self, fn_out: str):
+    def signalFilenameChangedA(self, fn_out: str):
         get_config()["filename_A"] = fn_out
         write_config()
 
-    def writeB(self, fn_out: str):
+    def signalFilenameChangedB(self, fn_out: str):
         get_config()["filename_B"] = fn_out
         write_config()
 
-    def writeC(self, fn_out: str):
+    def signalFilenameChangedC(self, fn_out: str):
         get_config()["filename_C"] = fn_out
         write_config()
 
