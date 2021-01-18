@@ -50,7 +50,6 @@ def write_config() -> None:
 def load_wave_file(path: str) -> np.ndarray:
     try:
         data, fs = soundfile.read(path)
-        data = data.T
         if fs != 48000:
             # TODO 2021-01-07 funktion zum resamplen implementieren
             print(f"Cant read audio file at {path} with a samplerate of {fs}."
@@ -78,6 +77,7 @@ class WidgetSignal(QtWidgets.QWidget):
 
         self.sig = np.zeros((2, 1024))
         self.fn_signal = ""
+        self.which_chan = 0
 
         _layout = QtWidgets.QVBoxLayout(self)
 
@@ -118,19 +118,16 @@ class WidgetSignal(QtWidgets.QWidget):
 
     def set_data(self, data):
         self.sig = data.copy()
-        self.sig = np.atleast_2d(self.sig)
         self.update_plot()
 
     def update_plot(self):
         nfft = get_config()["NFFT"]
-        f, t, STFT = scipy.signal.stft(self.sig, 48000, window='hann', nperseg=nfft)
+        f, t, STFT = scipy.signal.stft(self.sig[self.which_chan], 48000, window='hann', nperseg=nfft)
         mag = np.abs(STFT)
         mag[mag < 1e-12] = 1e-12
         mag_log = 20*np.log10(mag)
 
-        # self.figure.clear()
-
-        self.axes.imshow(mag_log[0], aspect="auto", origin="lower", cmap="jet", interpolation="nearest")
+        self.axes.imshow(mag_log, aspect="auto", origin="lower", cmap="jet", interpolation="nearest")
 
         self.figure.canvas.draw()
         self.figure.canvas.flush_events()
@@ -139,6 +136,13 @@ class WidgetSignal(QtWidgets.QWidget):
         self.fn_signal = fn_signal
         self._label_filename.setText(fn_signal)
         data = load_wave_file(fn_signal)
+        self.num_channels = data.shape[1] if data.ndim == 2 else 1
+        if self.num_channels > 2:
+            raise NotImplementedError("only mono or stereo")
+        data = np.atleast_2d(data)
+        # transpose, so the shape is (channels, samples)
+        if self.num_channels == 2:
+            data = data.T
         self.set_data(data)
         self.signalFilenameChanged.emit(fn_signal)
 
@@ -223,18 +227,26 @@ class MainAlterFalter(QtWidgets.QMainWindow):
     def calcB(self):
         print("Calc B")
 
-        half_C = self.widgetSignalC.sig
+        sig_a = self.widgetSignalA.sig
+        sig_c = self.widgetSignalC.sig
+
+        max_channels = max(self.widgetSignalA.num_channels, self.widgetSignalC.num_channels)
+        if self.widgetSignalA.num_channels != max_channels:
+            sig_a = np.vstack((sig_a, sig_a))
+        if self.widgetSignalC.num_channels != max_channels:
+            sig_c = np.vstack((sig_c, sig_c))
+
         len_A = self.widgetSignalA.sig.shape[-1]
-        len_C = half_C.shape[-1]
+        len_C = sig_c.shape[-1]
 
         if len_C < len_A:
-            half_C = np.pad(half_C, ((0, 0), (0, len_A - len_C)))
+            sig_c = np.pad(sig_c, ((0, 0), (0, len_A - len_C)))
             len_C = len_A
 
         len_diff = len_C - len_A
-        half_A = np.pad(self.widgetSignalA.sig, ((0, 0), (0, len_diff)))
-        full_A = np.pad(half_A, ((0, 0), (0, len_C)))
-        full_C = np.pad(half_C, ((0, 0), (0, len_C)))
+        sig_A = np.pad(sig_a, ((0, 0), (0, len_diff)))
+        full_A = np.pad(sig_A, ((0, 0), (0, len_C)))
+        full_C = np.pad(sig_c, ((0, 0), (0, len_C)))
 
         # sweep_padded = padarray(sweep_raw, sweep_duration_samples*2, before=sr*0)
         # rec_padded = padarray(rec_raw, sweep_duration_samples*2, before=sr*0)
@@ -261,7 +273,9 @@ class MainAlterFalter(QtWidgets.QMainWindow):
         ffth = fftc / ffta
         h1 = np.fft.irfft(ffth)
         # h1 = filter20_20k(h1, sr)
+        h1 = h1[..., :h1.shape[-1]//2]
 
+        self.widgetSignalB.num_channels = max_channels
         self.widgetSignalB.set_data(h1)
 
     def calcC(self):
@@ -273,10 +287,17 @@ class MainAlterFalter(QtWidgets.QMainWindow):
         sig_a = np.pad(self.widgetSignalA.sig, ((0, 0), (0, pad_a)))
         sig_b = np.pad(self.widgetSignalB.sig, ((0, 0), (0, pad_b)))
 
+        max_channels = max(self.widgetSignalA.num_channels, self.widgetSignalB.num_channels)
+        if self.widgetSignalA.num_channels != max_channels:
+            sig_a = np.vstack((sig_a, sig_a))
+        if self.widgetSignalB.num_channels != max_channels:
+            sig_b = np.vstack((sig_b, sig_b))
+
         ffta = np.fft.rfft(sig_a)
         fftb = np.fft.rfft(sig_b)
         ffth = fftb * ffta
         h = np.fft.irfft(ffth)
+        self.widgetSignalC.num_channels = max_channels
         self.widgetSignalC.set_data(h)
 
     def signalFilenameChangedA(self, fn_out: str):
