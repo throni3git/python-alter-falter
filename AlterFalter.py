@@ -62,6 +62,12 @@ def load_wave_file(path: str) -> np.ndarray:
     return None
 
 
+def filter20_20k(x, sr):  # filters everything outside out 20 - 20000 Hz
+    nyq = 0.5 * sr
+    sos = scipy.signal.butter(5, [50.0 / nyq, 20000.0 / nyq], btype='band', output='sos')
+    return scipy.signal.sosfilt(sos, x)
+
+
 class WidgetSignal(QtWidgets.QWidget):
 
     calculationDesired = Signal()
@@ -221,6 +227,47 @@ class MainAlterFalter(QtWidgets.QMainWindow):
 
     def calcB(self):
         print("Calc B")
+
+        half_C = self.widgetSignalC.sig
+        len_A = self.widgetSignalA.sig.shape[-1]
+        len_C = half_C.shape[-1]
+
+        if len_C < len_A:
+            half_C = np.pad(half_C, ((0, 0), (0, len_A - len_C)))
+            len_C = len_A
+
+        len_diff = len_C - len_A
+        half_A = np.pad(self.widgetSignalA.sig, ((0, 0), (0, len_diff)))
+        full_A = np.pad(half_A, ((0, 0), (0, len_C)))
+        full_C = np.pad(half_C, ((0, 0), (0, len_C)))
+
+        # sweep_padded = padarray(sweep_raw, sweep_duration_samples*2, before=sr*0)
+        # rec_padded = padarray(rec_raw, sweep_duration_samples*2, before=sr*0)
+
+        full_C = filter20_20k(full_C, 48000)
+
+        ffta = np.fft.rfft(full_A)
+        fftc = np.fft.rfft(full_C)
+
+        # bin_lower = int(100/48000*2 * fftc.shape[1])
+        # ramp_lower = 0.5-0.5*np.cos(np.arange(bin_lower)/bin_lower*np.pi)
+        # ramp_lower = np.atleast_2d(ramp_lower)**4
+        # ramp_lower = np.tile(ramp_lower, (fftc.shape[0] // ramp_lower.shape[0], 1))
+        # fftc[:, :bin_lower] *= ramp_lower
+
+        # bin_upper = int(22000/48000*2 * fftc.shape[1])
+        # ramp_upper = 0.5+0.5*np.cos(np.arange(fftc.shape[1]-bin_upper)/(fftc.shape[1]-bin_upper)*np.pi)
+        # ramp_upper = np.atleast_2d(ramp_upper)**4
+        # ramp_upper = np.tile(ramp_upper, (fftc.shape[0] // ramp_upper.shape[0], 1))
+        # fftc[:, bin_upper:] *= ramp_upper
+
+        # fftc[:, :bin_lower] = 0
+        # fftc[:, bin_upper:] = 0
+        ffth = fftc / ffta
+        h1 = np.fft.irfft(ffth)
+        # h1 = filter20_20k(h1, sr)
+
+        self.widgetSignalB.set_data(h1)
 
     def calcC(self):
         print("Calc C")
