@@ -118,10 +118,18 @@ class WidgetSignal(QtWidgets.QWidget):
 
     def set_data(self, data):
         self.sig = data.copy()
+        self.set_channel(self.which_chan)
         self.update_plot()
+
+    def set_channel(self, which_chan):
+        if which_chan > 2 or which_chan < 0:
+            raise NotImplementedError("only left or right channels supported")
+        which_chan = which_chan if self.num_channels == 2 else 0
+        self.which_chan = which_chan
 
     def update_plot(self):
         nfft = get_config()["NFFT"]
+
         f, t, STFT = scipy.signal.stft(self.sig[self.which_chan], 48000, window='hann', nperseg=nfft)
         mag = np.abs(STFT)
         mag[mag < 1e-12] = 1e-12
@@ -182,8 +190,10 @@ class MainAlterFalter(QtWidgets.QMainWindow):
 
         self._main = QtWidgets.QWidget()
         self.setCentralWidget(self._main)
+        container_layout = QtWidgets.QVBoxLayout(self._main)
 
-        layout = QtWidgets.QHBoxLayout(self._main)
+        layout = QtWidgets.QHBoxLayout()
+        container_layout.addLayout(layout)
         self.widgetSignalA = WidgetSignal("Signal A")
         self.widgetSignalA.calculationDesired.connect(self.calcA)
         self.widgetSignalA.signalFilenameChanged.connect(self.signalFilenameChangedA)
@@ -205,6 +215,20 @@ class MainAlterFalter(QtWidgets.QMainWindow):
         self.widgetSignalC.signalFilenameChanged.connect(self.signalFilenameChangedC)
         layout.addWidget(self.widgetSignalC)
 
+        layout_options = QtWidgets.QHBoxLayout()
+        container_layout.addLayout(layout_options)
+        self.radio_which_channel_left = QtWidgets.QRadioButton("left")
+        self.radio_which_channel_right = QtWidgets.QRadioButton("right")
+
+        self.radio_which_channel_group = QtWidgets.QButtonGroup()
+        self.radio_which_channel_group.buttonClicked.connect(self.check_which_channel)
+        self.radio_which_channel_group.addButton(self.radio_which_channel_left)
+        self.radio_which_channel_group.addButton(self.radio_which_channel_right)
+        layout_options.addWidget(self.radio_which_channel_left)
+        layout_options.addWidget(self.radio_which_channel_right)
+        self.radio_which_channel_left.setChecked(True)
+        layout_options.addStretch()
+
         # initial IR file loading
         fn_wave = get_config()["filename_A"]
         if fn_wave == None:
@@ -220,6 +244,20 @@ class MainAlterFalter(QtWidgets.QMainWindow):
         if fn_wave == None:
             fn_wave = str(Path(__file__).parent / "example/C.wav")
         self.widgetSignalC.open_file(fn_wave)
+
+    def check_which_channel(self, radio_button):
+        if radio_button.text() == "left":
+            self.widgetSignalA.set_channel(0)
+            self.widgetSignalB.set_channel(0)
+            self.widgetSignalC.set_channel(0)
+        else:
+            self.widgetSignalA.set_channel(1)
+            self.widgetSignalB.set_channel(1)
+            self.widgetSignalC.set_channel(1)
+
+        self.widgetSignalA.update_plot()
+        self.widgetSignalB.update_plot()
+        self.widgetSignalC.update_plot()
 
     def calcA(self):
         print("Calc A")
@@ -270,6 +308,8 @@ class MainAlterFalter(QtWidgets.QMainWindow):
 
         # fftc[:, :bin_lower] = 0
         # fftc[:, bin_upper:] = 0
+
+        ffta[np.abs(ffta) == 0] = 1e-12
         ffth = fftc / ffta
         h1 = np.fft.irfft(ffth)
         # h1 = filter20_20k(h1, sr)
