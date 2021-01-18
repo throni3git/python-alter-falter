@@ -79,7 +79,7 @@ class WidgetSignal(QtWidgets.QWidget):
         self.sig = np.zeros((2, 1024))
         self.fn_signal = ""
 
-        _layout = QtWidgets.QVBoxLayout()
+        _layout = QtWidgets.QVBoxLayout(self)
 
         # spectrogram view
         self.figure = Figure(figsize=(5, 5))
@@ -95,7 +95,7 @@ class WidgetSignal(QtWidgets.QWidget):
         self._group_filename = QtWidgets.QGroupBox(title)
         _layout.addWidget(self._group_filename)
 
-        _layout_filename = QtWidgets.QVBoxLayout()
+        _layout_filename = QtWidgets.QVBoxLayout(self._group_filename)
         _layout_filename_buttons = QtWidgets.QHBoxLayout()
         self._label_filename = QtWidgets.QLabel("Dateiname?")
         _layout_filename.addWidget(self._label_filename)
@@ -115,9 +115,6 @@ class WidgetSignal(QtWidgets.QWidget):
         _layout_filename_buttons.addWidget(self._save_button)
 
         _layout_filename.addLayout(_layout_filename_buttons)
-        self._group_filename.setLayout(_layout_filename)
-
-        self.setLayout(_layout)
 
     def set_data(self, data):
         self.sig = data.copy()
@@ -182,7 +179,7 @@ class MainAlterFalter(QtWidgets.QMainWindow):
         self._main = QtWidgets.QWidget()
         self.setCentralWidget(self._main)
 
-        layout = QtWidgets.QHBoxLayout()
+        layout = QtWidgets.QHBoxLayout(self._main)
         self.widgetSignalA = WidgetSignal("Signal A")
         self.widgetSignalA.calculationDesired.connect(self.calcA)
         self.widgetSignalA.signalFilenameChanged.connect(self.signalFilenameChangedA)
@@ -203,8 +200,6 @@ class MainAlterFalter(QtWidgets.QMainWindow):
         self.widgetSignalC.calculationDesired.connect(self.calcC)
         self.widgetSignalC.signalFilenameChanged.connect(self.signalFilenameChangedC)
         layout.addWidget(self.widgetSignalC)
-
-        self._main.setLayout(layout)
 
         # initial IR file loading
         fn_wave = get_config()["filename_A"]
