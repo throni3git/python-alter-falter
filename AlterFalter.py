@@ -61,10 +61,10 @@ def load_wave_file(path: str) -> np.ndarray:
     return None
 
 
-def filter20_20k(x, sr):  # filters everything outside out 20 - 20000 Hz
+def filter50_20k(x, sr):  # filters everything outside out 20 - 20000 Hz
     nyq = 0.5 * sr
-    sos = scipy.signal.butter(5, [50.0 / nyq, 20000.0 / nyq], btype='band', output='sos')
-    return scipy.signal.sosfilt(sos, x)
+    sos = scipy.signal.butter(2, [50.0 / nyq, 20000.0 / nyq], btype='band', output='sos')
+    return scipy.signal.sosfiltfilt(sos, x)
 
 
 class WidgetSignal(QtWidgets.QWidget):
@@ -289,7 +289,7 @@ class MainAlterFalter(QtWidgets.QMainWindow):
         # sweep_padded = padarray(sweep_raw, sweep_duration_samples*2, before=sr*0)
         # rec_padded = padarray(rec_raw, sweep_duration_samples*2, before=sr*0)
 
-        full_C = filter20_20k(full_C, 48000)
+        full_C = filter50_20k(full_C, 48000)
 
         ffta = np.fft.rfft(full_A)
         fftc = np.fft.rfft(full_C)
@@ -312,7 +312,7 @@ class MainAlterFalter(QtWidgets.QMainWindow):
         ffta[np.abs(ffta) == 0] = 1e-12
         ffth = fftc / ffta
         h1 = np.fft.irfft(ffth)
-        # h1 = filter20_20k(h1, sr)
+        # h1 = filter50_20k(h1, sr)
         h1 = h1[..., :h1.shape[-1]//2]
 
         self.widgetSignalB.num_channels = max_channels
