@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 from PySide2.QtCore import Qt, Slot, Signal
-from PySide2.QtGui import QIcon
+from PySide2.QtGui import QIcon, QFontMetrics
 
 from PySide2 import QtWidgets, QtCore
 
@@ -98,8 +98,14 @@ class WidgetSignal(QtWidgets.QWidget):
 
         _layout_filename = QtWidgets.QVBoxLayout(self._group_filename)
         _layout_filename_buttons = QtWidgets.QHBoxLayout()
-        self._label_filename = QtWidgets.QLabel("Dateiname?")
-        _layout_filename.addWidget(self._label_filename)
+        self._lineedit_filename = QtWidgets.QTextEdit("Dateiname?")
+        f = self._lineedit_filename.font()
+        f.setPointSize(f.pointSize() * 0.9)
+        self._lineedit_filename.setFont(f)
+        self._set_filename_text("Dateiname?")
+        self._lineedit_filename.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self._lineedit_filename.setReadOnly(True)
+        _layout_filename.addWidget(self._lineedit_filename)
 
         _layout_filename_buttons = QtWidgets.QHBoxLayout()
         self._calc_button = QtWidgets.QPushButton("Calculate")
@@ -158,9 +164,19 @@ class WidgetSignal(QtWidgets.QWidget):
         self.figure.canvas.draw()
         self.figure.canvas.flush_events()
 
+    def _set_filename_text(self, text: str):
+        self._lineedit_filename.setText(text)
+
+        font = self._lineedit_filename.font()
+        fontMetrics = QFontMetrics(font)
+        textSize = fontMetrics.size(0, text)
+        textHeight = textSize.height() + 26  # Need to tweak
+        self._lineedit_filename.setMaximumHeight(textHeight)
+
     def open_file(self, fn_signal: str):
         self.fn_signal = fn_signal
-        self._label_filename.setText(fn_signal)
+        self._set_filename_text(fn_signal)
+
         data = load_wave_file(fn_signal)
         self.num_channels = data.shape[1] if data.ndim == 2 else 1
         if self.num_channels > 2:
@@ -176,7 +192,7 @@ class WidgetSignal(QtWidgets.QWidget):
         pn_before = Path(self.fn_signal if self.fn_signal is not None else __file__).parent
 
         fn_signal, _ = QtWidgets.QFileDialog.getOpenFileName(filter="*.wav", dir=str(pn_before))
-        self._label_filename.setText(fn_signal)
+        self._set_filename_text(fn_signal)
         if fn_signal is not "":
             self.open_file(fn_signal)
 
@@ -189,7 +205,7 @@ class WidgetSignal(QtWidgets.QWidget):
         pn_before = Path(self.fn_signal if self.fn_signal is not None else __file__).parent
 
         fn_signal, _ = QtWidgets.QFileDialog.getSaveFileName(filter="*.wav", dir=str(pn_before))
-        self._label_filename.setText(fn_signal)
+        self._set_filename_text(fn_signal)
         if fn_signal is "":
             return
         if not fn_signal.endswith(".wav"):
