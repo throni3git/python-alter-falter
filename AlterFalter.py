@@ -178,6 +178,8 @@ class WidgetSignal(QtWidgets.QWidget):
         self._set_filename_text(fn_signal)
 
         data = load_wave_file(fn_signal)
+        if data is None:
+            return
         self.num_channels = data.shape[1] if data.ndim == 2 else 1
         if self.num_channels > 2:
             raise NotImplementedError("only mono or stereo")
