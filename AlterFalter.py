@@ -159,8 +159,14 @@ class WidgetSignal(QtWidgets.QWidget):
         self.axes.grid(True, alpha=0.3)
 
         self.axes.set_xlabel("time in s")
-        self.axes.set_xticks(np.arange(0, t[-1], 0.5) * self.fs * 2 / nfft)
-        self.axes.set_xticklabels(np.arange(0, t[-1], 0.5))
+        if t[-1] < 10:
+            step = 0.5
+            step_type = np.float32
+        else:
+            step = int(np.ceil(t[-1] / 20))
+            step_type = np.int32
+        self.axes.set_xticks(np.arange(0, t[-1], step) * self.fs * 2 / nfft)
+        self.axes.set_xticklabels(np.arange(0, t[-1], step, dtype=step_type))
 
         self.axes.set_ylabel("freq in kHz")
         self.axes.set_yticks(np.arange(0, f[-1], 1000) * nfft / self.fs)
