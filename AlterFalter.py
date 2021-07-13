@@ -16,6 +16,7 @@ from matplotlib.image import AxesImage
 import matplotlib.pyplot as plt
 
 import soundfile
+import sounddevice as sd
 
 _config = {
     "filename_A": None,
@@ -113,6 +114,10 @@ class WidgetSignal(QtWidgets.QWidget):
         _layout_filename_buttons.addWidget(self._calc_button)
         _layout_filename_buttons.addStretch()
 
+        self._play_button = QtWidgets.QPushButton("Play")
+        self._play_button.clicked.connect(self._toggle_play_stop)
+        _layout_filename_buttons.addWidget(self._play_button)
+
         self._open_button = QtWidgets.QPushButton("Open")
         self._open_button.clicked.connect(self._on_filedialog_open_file)
         _layout_filename_buttons.addWidget(self._open_button)
@@ -197,6 +202,9 @@ class WidgetSignal(QtWidgets.QWidget):
         self._set_filename_text(fn_signal)
         if fn_signal is not "":
             self.open_file(fn_signal)
+
+    def _toggle_play_stop(self):
+        sd.play(self.sig.T, self.fs)
 
     def save_file(self, fn_signal: str):
         self.fn_signal = fn_signal
