@@ -1,5 +1,6 @@
 # AlterFalter
 venv/
+output/
 config.json
 
 
