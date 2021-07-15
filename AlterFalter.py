@@ -170,7 +170,7 @@ class WidgetSignal(QtWidgets.QWidget):
 
         self.axes.set_ylabel("freq in kHz")
         self.axes.set_yticks(np.arange(0, f[-1], 1000) * nfft / self.fs)
-        self.axes.set_yticklabels(np.arange(0, f[-1], 1000, dtype=np.int)//1000)
+        self.axes.set_yticklabels(np.arange(0, f[-1], 1000, dtype=np.int32)//1000)
 
         self.figure.canvas.draw()
         self.figure.canvas.flush_events()
