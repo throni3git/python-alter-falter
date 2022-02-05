@@ -1,5 +1,5 @@
 # AlterFalter
-venv/
+venv*/
 output/
 config.json
 
