@@ -206,7 +206,7 @@ class WidgetSignal(QtWidgets.QWidget):
 
         fn_signal, _ = QtWidgets.QFileDialog.getOpenFileName(filter="*.wav", dir=str(pn_before))
         self._set_filename_text(fn_signal)
-        if fn_signal is not "":
+        if fn_signal != "":
             self.open_file(fn_signal)
 
     def _toggle_play_stop(self):
@@ -222,11 +222,11 @@ class WidgetSignal(QtWidgets.QWidget):
 
         fn_signal, _ = QtWidgets.QFileDialog.getSaveFileName(filter="*.wav", dir=str(pn_before))
         self._set_filename_text(fn_signal)
-        if fn_signal is "":
+        if fn_signal == "":
             return
         if not fn_signal.endswith(".wav"):
             fn_signal = fn_signal + ".wav"
-        if fn_signal is not "":
+        if fn_signal != "":
             self.save_file(fn_signal)
 
 
