@@ -27,7 +27,7 @@ setup(
     long_description=long_description,
     classifiers=[
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.8",
     ],
-    python_requires=">=3.6",
+    python_requires=">=3.8",
 )
