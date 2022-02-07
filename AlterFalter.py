@@ -149,6 +149,7 @@ class WidgetSignal(QtWidgets.QWidget):
         vmin = 20*np.log10(floor)
         vmax = 0
 
+        self.axes.clear()
         self.axes.imshow(mag_log,
                          aspect="auto",
                          origin="lower",
