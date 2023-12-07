@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "AlterFalter"
+version = "1.0.0"
+authors = [{ name = "Thomas Thron", email = "throni3git@gmail.com" }]
+description = "Convolution with spectrogram display"
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = ["tools", "DSP", "convolution"]
+license = { text = "MIT" }
+dependencies = [
+    "autopep8",
+    "numpy",
+    "matplotlib",
+    "SoundFile",
+    "scipy",
+    "sounddevice",
+    "pylint",
+    "numba",
+    "PySide2",
+]
+
+[tool.autopep8]
+max_line_length = 140
+# ignore = "E501,W6"  # or ["E501", "W6"]
+# in-place = true
+# recursive = true
+# aggressive = 3
